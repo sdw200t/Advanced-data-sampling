@@ -13,49 +13,49 @@ SELECT albums.name, AVG(duration) FROM tracks
 LEFT JOIN albums ON tracks.album_id = albums.id
 GROUP BY albums.name
 
-/*все исполнители, которые не выпустили альбомы в 2020 году;*/
-SELECT performers.name  FROM performers
+/*ИСПР. все исполнители, которые не выпустили альбомы в 2020 году;*/
+SELECT DISTINCT performers.name  FROM performers
 LEFT JOIN albumsofperformers ON albumsofperformers.performer_id = performers.id
 LEFT JOIN albums ON albumsofperformers.albums_id = albums.id
-WHERE albumsofperformers.albums_id != (SELECT albums.id FROM albums WHERE albums.yearofrelease = 2020) 
+WHERE albumsofperformers.albums_id NOT IN (SELECT albums.id FROM albums WHERE albums.yearofrelease = 2020) 
 	OR albumsofperformers.albums_id IS NULL 
-GROUP BY performers.name
 
-/*названия сборников, в которых присутствует конкретный исполнитель (выберите сами);*/
-SELECT collections.name FROM tracksincollection
+/*ИСПР. названия сборников, в которых присутствует конкретный исполнитель (выберите сами);*/
+SELECT DISTINCT collections.name FROM tracksincollection
 LEFT JOIN collections ON tracksincollection.collections_id = collections.id 
 LEFT JOIN tracks ON tracksincollection.track_id = collections.id 
 LEFT JOIN albumsofperformers ON tracks.album_id = albumsofperformers.albums_id 
 LEFT JOIN performers ON albumsofperformers.performer_id = performers.id 
 WHERE performers.name = 'Майкл Джексон'
-GROUP BY collections.name
 
-/*название альбомов, в которых присутствуют исполнители более 1 жанра;*/
-SELECT albums.name FROM albumsofperformers
+/*ИСПР. название альбомов, в которых присутствуют исполнители более 1 жанра;*/
+SELECT albums.name,COUNT(genre_id) FROM albumsofperformers
 LEFT JOIN albums ON albumsofperformers.albums_id = albums.id
-WHERE albumsofperformers.performer_id in (SELECT performer_id FROM genresofperformers GROUP BY performer_id HAVING COUNT(genre_id)>1)
+LEFT JOIN genresofperformers ON albumsofperformers.performer_id = genresofperformers.performer_id 
 GROUP BY albums.name
+HAVING COUNT(genre_id)>1
 
 /*наименование треков, которые не входят в сборники;*/
 SELECT tracks.name FROM tracks
 WHERE tracks.id NOT IN (SELECT track_id FROM tracksincollection) 
 
-/*исполнителя(-ей), написавшего самый короткий по продолжительности трек (теоретически таких треков может быть несколько);*/
-SELECT performers.name FROM tracks
+/*ИСПР. исполнителя(-ей), написавшего самый короткий по продолжительности трек (теоретически таких треков может быть несколько);*/
+SELECT DISTINCT performers.name FROM tracks
 LEFT JOIN albumsofperformers ON tracks.album_id = albumsofperformers.albums_id 
 LEFT JOIN performers ON albumsofperformers.performer_id = performers.id 
 WHERE tracks.duration IN (SELECT Min(tracks.duration) FROM tracks)
-GROUP BY performers.name
 
-/*название альбомов, содержащих наименьшее количество треков.*/
+/*ИСПР. название альбомов, содержащих наименьшее количество треков.*/
 SELECT albums.name FROM tracks
 LEFT JOIN albums ON tracks.album_id = albums.id 
 GROUP BY albums.name
 HAVING count(tracks.album_id) = (
-	SELECT min(cnt) from(
-		SELECT count(tracks.album_id) AS cnt FROM tracks
-		GROUP BY tracks.album_id
-	) AS tbl)
+	SELECT count(tracks.album_id) AS cnt FROM tracks
+	GROUP BY tracks.album_id
+	ORDER BY count(tracks.album_id)
+	LIMIT 1
+	)
+
 
 
 
